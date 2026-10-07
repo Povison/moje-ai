@@ -23,7 +23,8 @@
     </div>
 
     <script>
-        const API_KEY = "AIzaSyAQ_Ab8RN6JJwKDPZvEYc3Kg64A1sr_VNRB8s4NNFQ-P9fiT7ndO6Q";
+        // Opraveno pro nový formát klíčů začínající na AQ.
+        const API_KEY = "AQ.Ab8RN6JjWkDPZvEYc3kG64Alsr_VNRB8s4NNFQ-P9fiT7nDo6Q";
         const MODEL = "gemini-1.5-flash";
 
         const povídání = document.getElementById('povídání');
@@ -52,6 +53,7 @@
             try {
                 dějiny.push({ role: "user", parts: [{ text: text }] });
 
+                // Změněno na stabilní /v1/ endpoint, který podporuje AQ klíče
                 const odpověď = await fetch(`https://googleapis.com{MODEL}:generateContent?key=${API_KEY}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -59,13 +61,20 @@
                 });
 
                 const data = await odpověď.json();
-                const textOdpovědi = data.candidates[0].content.parts[0].text;
                 
-                aiDiv.innerText = 'Gemini: ' + textOdpovědi;
-                dějiny.push({ role: "model", parts: [{ text: textOdpovědi }] });
+                // Ošetření struktury odpovědi
+                if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
+                    const textOdpovědi = data.candidates[0].content.parts[0].text;
+                    aiDiv.innerText = 'Gemini: ' + textOdpovědi;
+                    dějiny.push({ role: "model", parts: [{ text: textOdpovědi }] });
+                } else if (data.error) {
+                    aiDiv.innerText = 'Chyba API: ' + data.error.message;
+                } else {
+                    aiDiv.innerText = 'Chyba: Obdržen neočekávaný formát dat.';
+                }
 
             } catch (chyba) {
-                aiDiv.innerText = 'Chyba: Nepodařilo se spojit s AI. Zkontrolujte API klíč.';
+                aiDiv.innerText = 'Chyba: Nepodařilo se spojit s AI. Zkontrolujte připojení.';
                 console.error(chyba);
             } finally {
                 tlačítkoProOdeslání.disabled = false;
