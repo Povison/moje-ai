@@ -6,8 +6,11 @@
     <title>Blesková Gemini</title>
     <style>
         body { background: #111; color: #fff; font-family: sans-serif; padding: 20px; }
+        #nastaveni-klice { margin-bottom: 15px; padding: 10px; background: #222; border-radius: 5px; border: 1px dashed #555; }
+        #api-vstup { padding: 5px; width: 300px; background: #333; color: #fff; border: 1px solid #555; }
         #povídání { min-height: 200px; margin-bottom: 20px; padding: 10px; background: #222; border-radius: 5px; }
-        #výzva { width: 80%; padding: 10px; background: #222; color: #fff; border: 1px solid #444; border-radius: 5px; }
+        #vstupní-oblast { display: flex; gap: 10px; }
+        #výzva { flex-grow: 1; padding: 10px; background: #222; color: #fff; border: 1px solid #444; border-radius: 5px; }
         #poslat { padding: 10px 20px; background: #fff; color: #000; border: none; border-radius: 5px; cursor: pointer; }
         #poslat:disabled { background: #444; color: #777; cursor: not-allowed; }
         .user { color: #00ff00; margin-bottom: 5px; }
@@ -16,21 +19,44 @@
 </head>
 <body>
 
+    <div id="nastaveni-klice">
+        <label for="api-vstup">Vložte svůj Gemini API klíč: </label>
+        <input type="password" id="api-vstup" placeholder="AQ.Ab8RN6...">
+        <button id="ulozit-klic" style="padding: 5px 10px; cursor: pointer;">Uložit klíč</button>
+        <span id="stav-klice" style="color: #aaa; margin-left: 10px;"></span>
+    </div>
+
     <div id="povídání"></div>
-    <div id="vstupní oblast">
+    <div id="vstupní-oblast">
         <input type="text" id="výzva" placeholder="Zeptej se na cokoliv...">
         <button id="poslat">→</button>
     </div>
 
     <script>
-        // Opraveno pro nový formát klíčů začínající na AQ.
-        const API_KEY = "AQ.Ab8RN6JjWkDPZvEYc3kG64Alsr_VNRB8s4NNFQ-P9fiT7nDo6Q";
         const MODEL = "gemini-1.5-flash";
-
         const povídání = document.getElementById('povídání');
         const promptInput = document.getElementById('výzva');
         const tlačítkoProOdeslání = document.getElementById('poslat');
+        const apiVstup = document.getElementById('api-vstup');
+        const tlacitkoUlozitKlic = document.getElementById('ulozit-klic');
+        const stavKlice = document.getElementById('stav-klice');
+        
         let dějiny = [];
+
+        // Načtení klíče z paměti prohlížeče, pokud existuje
+        if (localStorage.getItem('gemini_api_key')) {
+            apiVstup.value = localStorage.getItem('gemini_api_key');
+            stavKlice.innerText = "Klíč je načten z paměti.";
+        }
+
+        tlacitkoUlozitKlic.addEventListener('click', () => {
+            const klic = apiVstup.value.trim();
+            if (klic) {
+                localStorage.setItem('gemini_api_key', klic);
+                stavKlice.innerText = "Klíč úspěšně uložen!";
+                stavKlice.style.color = "#00ff00";
+            }
+        });
 
         function přidatZprávu(text, autor) {
             const nováZpráva = document.createElement('div');
@@ -42,6 +68,12 @@
 
         async function sendToAi() {
             const text = promptInput.value.trim();
+            const AKTUALNI_API_KEY = localStorage.getItem('gemini_api_key') || apiVstup.value.trim();
+            
+            if (!AKTUALNI_API_KEY) {
+                alert("Nejprve prosím vložte a uložte svůj API klíč nahoře na stránce!");
+                return;
+            }
             if (!text || tlačítkoProOdeslání.disabled) return;
 
             přidatZprávu(text, 'uživatel');
@@ -53,8 +85,7 @@
             try {
                 dějiny.push({ role: "user", parts: [{ text: text }] });
 
-                // Změněno na stabilní /v1/ endpoint, který podporuje AQ klíče
-                const odpověď = await fetch(`https://googleapis.com{MODEL}:generateContent?key=${API_KEY}`, {
+                const odpověď = await fetch(`https://googleapis.com{MODEL}:generateContent?key=${AKTUALNI_API_KEY}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ contents: dějiny })
@@ -62,7 +93,6 @@
 
                 const data = await odpověď.json();
                 
-                // Ošetření struktury odpovědi
                 if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
                     const textOdpovědi = data.candidates[0].content.parts[0].text;
                     aiDiv.innerText = 'Gemini: ' + textOdpovědi;
@@ -74,7 +104,7 @@
                 }
 
             } catch (chyba) {
-                aiDiv.innerText = 'Chyba: Nepodařilo se spojit s AI. Zkontrolujte připojení.';
+                aiDiv.innerText = 'Chyba: Nepodařilo se spojit s AI. Zkontrolujte API klíč.';
                 console.error(chyba);
             } finally {
                 tlačítkoProOdeslání.disabled = false;
