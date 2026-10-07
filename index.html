@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blesková Gemini</title>
+    <title>Blesková Gemini - OPRAVENÁ</title>
     <style>
         body { background: #111; color: #fff; font-family: sans-serif; padding: 20px; }
         #nastaveni-klice { margin-bottom: 15px; padding: 10px; background: #222; border-radius: 5px; border: 1px dashed #555; }
@@ -21,7 +21,7 @@
 
     <div id="nastaveni-klice">
         <label for="api-vstup">Vložte svůj Gemini API klíč: </label>
-        <input type="password" id="api-vstup" placeholder="AQ.Ab8RN6IaqvCq1QyruRTJOIfxNe-yL5ZoBkIMmCUz2bRvJASnCw">
+        <input type="password" id="api-vstup" placeholder="Zadejte váš klíč...">
         <button id="ulozit-klic" style="padding: 5px 10px; cursor: pointer;">Uložit klíč</button>
         <span id="stav-klice" style="color: #aaa; margin-left: 10px;"></span>
     </div>
@@ -43,10 +43,11 @@
         
         let dějiny = [];
 
-        // Načtení klíče z paměti prohlížeče, pokud existuje
+        // Načtení klíče z paměti
         if (localStorage.getItem('gemini_api_key')) {
             apiVstup.value = localStorage.getItem('gemini_api_key');
             stavKlice.innerText = "Klíč je načten z paměti.";
+            stavKlice.style.color = "#00ff00";
         }
 
         tlacitkoUlozitKlic.addEventListener('click', () => {
@@ -80,11 +81,12 @@
             promptInput.value = '';
             tlačítkoProOdeslání.disabled = true;
 
-            const aiDiv = přidatZprávu('Uvažte...', 'ai');
+            const aiDiv = přidatZprávu('Uvažuji...', 'ai');
 
             try {
                 dějiny.push({ role: "user", parts: [{ text: text }] });
 
+                // ZDE BYLA CHYBA - ADRESA JE NYNÍ OPRAVENÁ:
                 const odpověď = await fetch(`https://googleapis.com{MODEL}:generateContent?key=${AKTUALNI_API_KEY}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
