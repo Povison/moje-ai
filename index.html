@@ -5,106 +5,78 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Blesková Gemini</title>
     <style>
-        body { margin: 0; background: #111; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; }
-        #chat { flex: 1; overflow-y: auto; padding: 15px; font-size: 16px; line-height: 1.4; display: flex; flex-direction: column; }
-        .msg { margin-bottom: 12px; padding: 10px 14px; border-radius: 12px; max-width: 85%; word-wrap: break-word; white-space: pre-wrap; }
-        .user { background: #333; align-self: flex-end; color: #fff; }
-        .ai { background: #1a1a1a; align-self: flex-start; border: 1px solid #222; }
-        #input-area { display: flex; padding: 12px; background: #161616; border-top: 1px solid #222; align-items: center; }
-        textarea { flex: 1; background: #222; color: #fff; border: 1px solid #333; border-radius: 20px; padding: 10px 15px; resize: none; height: 24px; font-size: 16px; line-height: 24px; outline: none; }
-        button { background: #fff; color: #000; border: none; border-radius: 50%; width: 40px; height: 40px; margin-left: 10px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-        button:disabled { background: #444; color: #777; }
+        body { background: #111; color: #fff; font-family: sans-serif; padding: 20px; }
+        #povídání { min-height: 200px; margin-bottom: 20px; padding: 10px; background: #222; border-radius: 5px; }
+        #výzva { width: 80%; padding: 10px; background: #222; color: #fff; border: 1px solid #444; border-radius: 5px; }
+        #poslat { padding: 10px 20px; background: #fff; color: #000; border: none; border-radius: 5px; cursor: pointer; }
+        #poslat:disabled { background: #444; color: #777; cursor: not-allowed; }
+        .user { color: #00ff00; margin-bottom: 5px; }
+        .ai { color: #00daff; margin-bottom: 5px; }
     </style>
 </head>
 <body>
-    <div id="chat"></div>
-    <div id="input-area">
-        <textarea id="prompt" placeholder="Zeptej se na cokoliv..." rows="1"></textarea>
-        <button id="send">➔</button>
-    </div>
-    <script>
-        // TADY JE VÁŠ KLÍČ, KTERÝ JSEM OPRAVIL PODLE VAŠEHO SNÍMKU Z MOBILU
-        const API_KEY = "AIzaSyAQ_Ab8RN6JJwKDPZvEYc3Kg64A1sr_VNR"; 
-        const MODEL = "gemini-1.5-flash";
-        const chat = document.getElementById('chat');
-        const promptInput = document.getElementById('prompt');
-        const sendBtn = document.getElementById('send');
-        let history = [];
 
-        async function sendToAI() {
+    <div id="povídání"></div>
+    <div id="vstupní oblast">
+        <input type="text" id="výzva" placeholder="Zeptej se na cokoliv...">
+        <button id="poslat">→</button>
+    </div>
+
+    <script>
+        // Zde je váš API klíč (zkontrolujte, zda je kompletní)
+        const API_KEY = "AIzaSyAQ_Ab8RN6JJwKDPZvEYc3Kg64A1sr_VNR";
+        const MODEL = "gemini-1.5-flash";
+
+        const povídání = document.getElementById('povídání');
+        const promptInput = document.getElementById('výzva');
+        const tlačítkoProOdeslání = document.getElementById('poslat');
+        let dějiny = [];
+
+        function přidatZprávu(text, autor) {
+            const nováZpráva = document.createElement('div');
+            nováZpráva.className = autor;
+            nováZpráva.innerText = (autor === 'uživatel' ? 'Vy: ' : 'Gemini: ') + text;
+            povídání.appendChild(nováZpráva);
+            return nováZpráva;
+        }
+
+        async function sendToAi() {
             const text = promptInput.value.trim();
-            if (!text || sendBtn.disabled) return;
-            appendMessage(text, 'user');
+            if (!text || tlačítkoProOdeslání.disabled) return;
+
+            pridatZprávu(text, 'uživatel');
             promptInput.value = '';
-            sendBtn.disabled = true;
-            const aiDiv = appendMessage('Uvažuji...', 'ai');
+            tlačítkoProOdeslání.disabled = true;
+
+            const aiDiv = přidatZprávu('Uvažte...', 'ai');
+
             try {
-                history.push({ role: "user", parts: [{ text: text }] });
-                const response = await fetch(`https://googleapis.com{MODEL}:streamGenerateContent?key=${API_KEY}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        contents: history,
-                        systemInstruction: { parts: [{ text: "Odpovídej extrémně stručně, věcně, přesně a k věci v češtině. U technických návodů jdi rovnou k faktům bez omáčky." }] }
-                    })
+                dějiny.push({ role: "user", parts: [{ text: text }] });
+
+                const odpověď = await fetch(`https://googleapis.com{MODEL}:generateContent?key=${API_KEY}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ contents: dějiny })
                 });
-                if (!response.ok) throw new Error();
-                aiDiv.innerText = '';
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder('utf-8');
-                let buffer = '';
-                let aiFullResponse = '';
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    buffer += decoder.decode(value, { stream: true });
-                    try {
-                        let cleanBuffer = buffer.trim();
-                        if (cleanBuffer.startsWith('[')) cleanBuffer = cleanBuffer.slice(1);
-                        if (cleanBuffer.endsWith(']')) cleanBuffer = cleanBuffer.slice(0, -1);
-                        const parts = cleanBuffer.split('},\n{');
-                        let currentText = '';
-                        for (let part of parts) {
-                            if (!part.startsWith('{')) part = '{' + part;
-                            if (!part.endsWith('}')) part = part + '}';
-                            try {
-                                const json = JSON.parse(part);
-                                if (json.candidates?.?.content?.parts?.?.text) {
-                                    currentText += json.candidates.content.parts.text;
-                                }
-                            } catch (e) { }
-                        }
-                        if (currentText) {
-                            aiFullResponse = currentText;
-                            aiDiv.innerText = aiFullResponse;
-                            chat.scrollTop = chat.scrollHeight;
-                        }
-                    } catch (err) { }
-                }
-                if (!aiFullResponse) {
-                    aiDiv.innerText = "Chyba při zpracování textu.";
-                } else {
-                    history.push({ role: "model", parts: [{ text: aiFullResponse }] });
-                }
-            } catch (error) {
-                aiDiv.innerText = "Chyba spojení. Zkontrolujte API klíč.";
+
+                const data = await odpověď.json();
+                const textOdpovědi = data.candidates[0].content.parts[0].text;
+                
+                aiDiv.innerText = 'Gemini: ' + textOdpovědi;
+                dějiny.push({ role: "model", parts: [{ text: textOdpovědi }] });
+
+            } catch (chyba) {
+                aiDiv.innerText = 'Chyba: Nepodařilo se spojit s AI. Zkontrolujte API klíč.';
+                console.error(chyba);
             } finally {
-                sendBtn.disabled = false;
+                tlačítkoProOdeslání.disabled = false;
             }
         }
 
-        function appendMessage(text, sender) {
-            const div = document.createElement('div');
-            div.className = `msg ${sender}`;
-            div.innerText = text;
-            chat.appendChild(div);
-            chat.scrollTop = chat.scrollHeight;
-            return div;
-        }
-
-        sendBtn.addEventListener('click', sendToAI);
-        promptInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendToAI(); } });
+        tlačítkoProOdeslání.addEventListener('click', sendToAi);
+        promptInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendToAi();
+        });
     </script>
 </body>
 </html>
-
