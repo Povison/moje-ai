@@ -70,7 +70,7 @@
             const aiMessageElement = appendMessage('Přemýšlím...', 'ai');
 
             try {
-                // TADY JE ROZHODUJÍCÍ OPRAVA: Kompletní, stoprocentně správná oficiální adresa Googlu
+                // TADY JE ROZHODUJÍCÍ A FINÁLNÍ OPRAVA ADRESY
                 const url = 'https://googleapis.com' + model + ':generateContent?key=' + apiKey;
                 
                 const response = await fetch(url, {
@@ -94,12 +94,12 @@
                     const aiText = data.candidates[0].content.parts[0].text;
                     aiMessageElement.innerText = aiText;
                 } else {
-                    aiMessageElement.innerText = "Dostal jsem odpověď v jiném formátu. Zkontrolujte API klíč.";
+                    aiMessageElement.innerText = "Dostal jsem odpověď v neznámém formátu. Zkontrolujte API klíč.";
                 }
 
             } catch (error) {
                 console.error(error);
-                aiMessageElement.innerText = 'Chyba: ' + error.message + '. Zkontrolujte klíč nebo zkuste jiný model.';
+                aiMessageElement.innerText = 'Chyba: ' + error.message;
             }
         }
 
