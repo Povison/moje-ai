@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moje Neomezené Gemini</title>
+    <title>Moje Neomezené Gemini v2</title>
     <style>
         body { font-family: Arial, sans-serif; background: #131314; color: #e3e3e3; margin: 0; display: flex; flex-direction: column; height: 100vh; }
         #setup { display: flex; gap: 10px; padding: 10px 20px; background: #1e1f20; border-bottom: 1px solid #3c4043; font-size: 14px; align-items: center; flex-wrap: wrap; }
@@ -22,40 +22,40 @@
 
     <div id="setup">
         <label for="apiKey">API Klíč:</label>
-        <input type="password" id="apiKey" placeholder="Vložte AQ.Ab8..." style="padding: 6px;" oninput="saveApiKey()">
+        <input type="password" id="apiKey" placeholder="Vložte váš klíč..." style="padding: 6px;" oninput="saveApiKey()">
         <label for="modelSelect">Model:</label>
         <select id="modelSelect" style="padding: 6px;">
             <option value="gemini-1.5-flash">Gemini 1.5 Flash (Rychlý)</option>
             <option value="gemini-2.5-flash">Gemini 2.5 Flash (Nejnovější)</option>
-            <option value="gemini-1.5-pro">Gemini 1.5 Pro (Chytrý / Těžké úkoly)</option>
+            <option value="gemini-1.5-pro">Gemini 1.5 Pro (Pokročilý)</option>
         </select>
     </div>
 
     <div id="chat-container">
-        <div class="message ai">Ahoj! Vlož nahoře svůj nový API klíč (začínající na AQ.), vyber model a můžeme si povídat bez omezení. Klíč se bezpečně uloží v prohlížeči.</div>
+        <div class="message ai">Ahoj! Vlož nahoře svůj API klíč, vyber model a můžeme si povídat bez omezení. Klíč se bezpečně uloží v prohlížeči.</div>
     </div>
 
     <div id="input-container">
-        <input type="text" id="userInput" placeholder="Napiš zprávu..." onkeydown="if(event.key === 'Enter') sendMessage()">
-        <button onclick="sendMessage()">Odeslat</button>
+        <input type="text" id="userInput" placeholder="Napiš zprávu..." onkeydown="if(event.key === 'Enter') startChat()">
+        <button onclick="startChat()">Odeslat</button>
     </div>
 
     <script>
-        // Načtení uloženého klíče
+        // Načtení uloženého klíče při startu
         window.onload = function() {
-            const savedKey = localStorage.getItem('gemini_api_key');
+            const savedKey = localStorage.getItem('gemini_key_storage');
             if (savedKey) {
                 document.getElementById('apiKey').value = savedKey;
             }
         };
 
-        // Automatické uložení klíče
+        // Uložení klíče do prohlížeče
         function saveApiKey() {
             const key = document.getElementById('apiKey').value.trim();
-            localStorage.setItem('gemini_api_key', key);
+            localStorage.setItem('gemini_key_storage', key);
         }
 
-        async function sendMessage() {
+        async function startChat() {
             const apiKey = document.getElementById('apiKey').value.trim();
             const model = document.getElementById('modelSelect').value;
             const inputField = document.getElementById('userInput');
@@ -70,16 +70,12 @@
             const aiMessageElement = appendMessage('Přemýšlím...', 'ai');
 
             try {
-                // Nový bezpečný koncový bod bez klíče v URL adrese
-                const url = `https://googleapis.com{model}:generateContent`;
+                // Oficiální Google API endpoint s parametrem ?key=
+                const url = `https://googleapis.com{model}:generateContent?key=${apiKey}`;
                 
                 const response = await fetch(url, {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        // NOVÁ OPRAVA: Posíláme AQ. klíč bezpečně v hlavičce x-goog-api-key
-                        'x-goog-api-key': apiKey 
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         contents: [{
                             parts: [{ text: text }]
@@ -98,7 +94,7 @@
                     const aiText = data.candidates[0].content.parts[0].text;
                     aiMessageElement.innerText = aiText;
                 } else {
-                    aiMessageElement.innerText = "Dostal jsem prázdnou odpověď, zkontrolujte nastavení modelu.";
+                    aiMessageElement.innerText = "Dostal jsem neočekávanou odpověď. Zkontrolujte API klíč.";
                 }
 
             } catch (error) {
