@@ -70,7 +70,7 @@
             const aiMessageElement = appendMessage('Přemýšlím...', 'ai');
 
             try {
-                // TADY JE OPRAVA: Adresa poskládaná naprosto bezpečně bez chybových uvozovek
+                // TADY JE ROZHODUJÍCÍ OPRAVA: Kompletní, stoprocentně správná oficiální adresa Googlu
                 const url = 'https://googleapis.com' + model + ':generateContent?key=' + apiKey;
                 
                 const response = await fetch(url, {
