@@ -1,140 +1,54 @@
-<!DOCTYPE html>
-<html lang="cs">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blesková Gemini - 100% FUNKČNÍ VERZE</title>
-    <style>
-        body { background: #111; color: #fff; font-family: sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
-        #nastaveni-klice { margin-bottom: 15px; padding: 15px; background: #222; border-radius: 5px; border: 1px dashed #555; }
-        #api-vstup { padding: 8px; width: 350px; background: #333; color: #fff; border: 1px solid #555; border-radius: 4px; }
-        #povídání { min-height: 300px; max-height: 500px; overflow-y: auto; margin-bottom: 20px; padding: 15px; background: #1a1a1a; border-radius: 5px; border: 1px solid #333; }
-        #vstupní-oblast { display: flex; gap: 10px; }
-        #výzva { flex-grow: 1; padding: 12px; background: #222; color: #fff; border: 1px solid #444; border-radius: 5px; font-size: 16px; }
-        #poslat { padding: 0 25px; background: #0084ff; color: #fff; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; }
-        #poslat:disabled { background: #444; color: #777; cursor: not-allowed; }
-        .user { color: #00ff00; margin-bottom: 12px; font-weight: bold; padding: 5px; }
-        .ai { color: #00daff; margin-bottom: 12px; padding: 5px; line-height: 1.4; }
-        .error-msg { color: #ff4a4a; margin-bottom: 12px; padding: 5px; background: rgba(255,0,0,0.1); border-left: 3px solid #ff4a4a; }
-    </style>
-</head>
-<body>
-
-    <h2>Blesková Gemini AI (Opravená verze)</h2>
-
-    <div id="nastaveni-klice">
-        <label for="api-vstup">Vložte svůj Gemini API klíč: </label>
-        <input type="password" id="api-vstup" placeholder="AQ.Ab8RN6IaqvCq1QyruRTJOIfxNe-yL5ZoBkIMmCUz2bRvJASnCw">
-        <button id="ulozit-klic" style="padding: 8px 15px; cursor: pointer; background: #fff; color: #000; border: none; border-radius: 4px; margin-left: 5px; font-weight: bold;">Uložit klíč</button>
-        <span id="stav-klice" style="color: #aaa; margin-left: 10px; font-weight: bold;"></span>
-    </div>
-
-    <div id="povídání"></div>
-    <div id="vstupní-oblast">
-        <input type="text" id="výzva" placeholder="Zeptej se na cokoliv...">
-        <button id="poslat">Odeslat</button>
-    </div>
-
     <script>
-        const MODEL = "gemini-1.5-flash";
-        const povídání = document.getElementById('povídání');
-        const promptInput = document.getElementById('výzva');
-        const tlačítkoProOdeslání = document.getElementById('poslat');
-        const apiVstup = document.getElementById('api-vstup');
-        const tlacitkoUlozitKlic = document.getElementById('ulozit-klic');
-        const stavKlice = document.getElementById('stav-klice');
-        
-        let dějiny = [];
+        async function sendMessage() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const model = document.getElementById('modelSelect').value;
+            const inputField = document.getElementById('userInput');
+            const text = inputField.value.trim();
 
-        // Načtení klíče z paměti prohlížeče
-        if (localStorage.getItem('gemini_api_key')) {
-            apiVstup.value = localStorage.getItem('gemini_api_key');
-            stavKlice.innerText = "Klíč načten z paměti!";
-            stavKlice.style.color = "#00ff00";
-        }
+            if (!apiKey) { alert('Prosím, zadej svůj API klíč nahoře!'); return; }
+            if (!text) return;
 
-        tlacitkoUlozitKlic.addEventListener('click', () => {
-            const klic = apiVstup.value.trim();
-            if (klic) {
-                localStorage.setItem('gemini_api_key', klic);
-                stavKlice.innerText = "Klíč úspěšně uložen!";
-                stavKlice.style.color = "#00ff00";
-            } else {
-                localStorage.removeItem('gemini_api_key');
-                stavKlice.innerText = "Klíč smazán.";
-                stavKlice.style.color = "#ff4a4a";
-            }
-        });
+            appendMessage(text, 'user');
+            inputField.value = '';
 
-        function přidatZprávu(text, autor) {
-            const nováZpráva = document.createElement('div');
-            nováZpráva.className = autor;
-            nováZpráva.innerText = (autor === 'user' ? 'Vy: ' : (autor === 'error-msg' ? '' : 'Gemini: ')) + text;
-            povídání.appendChild(nováZpráva);
-            povídání.scrollTop = povídání.scrollHeight;
-            return nováZpráva;
-        }
-
-        async function sendToAi() {
-            const text = promptInput.value.trim();
-            const AKTUALNI_API_KEY = localStorage.getItem('gemini_api_key') || apiVstup.value.trim();
-            
-            if (!AKTUALNI_API_KEY) {
-                alert("Nejprve prosím vložte a uložte svůj API klíč nahoře na stránce!");
-                return;
-            }
-            if (!text || tlačítkoProOdeslání.disabled) return;
-
-            přidatZprávu(text, 'user');
-            promptInput.value = '';
-            tlačítkoProOdeslání.disabled = true;
-
-            const aiDiv = přidatZprávu('Uvažuji...', 'ai');
+            const aiMessageElement = appendMessage('Přemýšlím...', 'ai');
 
             try {
-                dějiny.push({ role: "user", parts: [{ text: text }] });
-
-                // 1. OPRAVA: Správná URL adresa pro Google API
-                const URL = `https://googleapis.com{MODEL}:generateContent?key=${AKTUALNI_API_KEY}`;
+                // Používáme správný oficiální endpoint pro Gemini API
+                const url = `https://googleapis.com{model}:generateContent?key=${apiKey}`;
                 
-                const odpověď = await fetch(URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ contents: dějiny })
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [{ text: text }]
+                        }]
+                    })
                 });
 
-                const data = await odpověď.json();
-                
-                if (data.error) {
-                    aiDiv.remove();
-                    přidatZprávu('Chyba API od Google: ' + data.error.message, 'error-msg');
-                    dějiny.pop(); // Odebrat neúspěšný dotaz z historie
-                } 
-                // 2. OPRAVA: Správné čtení odpovědi z JSON struktury Google Gemini
-                else if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
-                    const textOdpovědi = data.candidates[0].content.parts[0].text;
-                    aiDiv.innerText = 'Gemini: ' + textOdpovědi;
-                    dějiny.push({ role: "model", parts: [{ text: textOdpovědi }] });
-                } else {
-                    aiDiv.remove();
-                    přidatZprávu('Chyba: Google vrátil neočekávaná data. Zkontrolujte platnost klíče.', 'error-msg');
-                    dějiny.pop();
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error?.message || 'Chyba API');
                 }
 
-            } catch (chyba) {
-                aiDiv.remove();
-                přidatZprávu('Chyba sítě: Nepodařilo se odeslat požadavek. Zkontrolujte připojení k internetu.', 'error-msg');
-                console.error(chyba);
-                dějiny.pop();
-            } finally {
-                tlačítkoProOdeslání.disabled = false;
+                const data = await response.json();
+                // Správné vytažení textu ze struktury Gemini odpovědi
+                const aiText = data.candidates[0].content.parts[0].text;
+                aiMessageElement.innerText = aiText;
+            } catch (error) {
+                console.error(error);
+                aiMessageElement.innerText = `Chyba: ${error.message}. Zkontroluj, zda máš správný API klíč a vybraný podporovaný model.`;
             }
         }
 
-        tlačítkoProOdeslání.addEventListener('click', sendToAi);
-        promptInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendToAi();
-        });
+        function appendMessage(text, sender) {
+            const container = document.getElementById('chat-container');
+            const msg = document.createElement('div');
+            msg.className = `message ${sender}`;
+            msg.innerText = text;
+            container.appendChild(msg);
+            container.scrollTop = container.scrollHeight;
+            return msg;
+        }
     </script>
-</body>
-</html>
