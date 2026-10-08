@@ -1,4 +1,4 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
@@ -22,7 +22,7 @@
 
     <div id="setup">
         <label for="apiKey">API Klíč:</label>
-        <input type="password" id="apiKey" placeholder="Vložte AIzaSy..." style="padding: 6px;" oninput="saveApiKey()">
+        <input type="password" id="apiKey" placeholder="Vložte AQ.Ab8..." style="padding: 6px;" oninput="saveApiKey()">
         <label for="modelSelect">Model:</label>
         <select id="modelSelect" style="padding: 6px;">
             <option value="gemini-1.5-flash">Gemini 1.5 Flash (Rychlý)</option>
@@ -32,7 +32,7 @@
     </div>
 
     <div id="chat-container">
-        <div class="message ai">Ahoj! Vlož nahoře svůj API klíč z Google AI Studio, vyber model a můžeme si povídat bez omezení. Klíč se bezpečně uloží v tvém prohlížeči.</div>
+        <div class="message ai">Ahoj! Vlož nahoře svůj nový API klíč (začínající na AQ.), vyber model a můžeme si povídat bez omezení. Klíč se bezpečně uloží v prohlížeči.</div>
     </div>
 
     <div id="input-container">
@@ -41,7 +41,7 @@
     </div>
 
     <script>
-        // Při načtení stránky zkontrolujeme, jestli už máme klíč uložený v prohlížeči
+        // Načtení uloženého klíče
         window.onload = function() {
             const savedKey = localStorage.getItem('gemini_api_key');
             if (savedKey) {
@@ -49,7 +49,7 @@
             }
         };
 
-        // Funkce, která klíč automaticky uloží, když ho napíšete nebo vložíte
+        // Automatické uložení klíče
         function saveApiKey() {
             const key = document.getElementById('apiKey').value.trim();
             localStorage.setItem('gemini_api_key', key);
@@ -70,12 +70,16 @@
             const aiMessageElement = appendMessage('Přemýšlím...', 'ai');
 
             try {
-                // Tady je ta opravená a 100% správná adresa pro servery Googlu
-                const url = `https://googleapis.com{model}:generateContent?key=${apiKey}`;
+                // Nový bezpečný koncový bod bez klíče v URL adrese
+                const url = `https://googleapis.com{model}:generateContent`;
                 
                 const response = await fetch(url, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        // NOVÁ OPRAVA: Posíláme AQ. klíč bezpečně v hlavičce x-goog-api-key
+                        'x-goog-api-key': apiKey 
+                    },
                     body: JSON.stringify({
                         contents: [{
                             parts: [{ text: text }]
@@ -90,7 +94,6 @@
 
                 const data = await response.json();
                 
-                // Vytáhneme text z odpovědi od Gemini
                 if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
                     const aiText = data.candidates[0].content.parts[0].text;
                     aiMessageElement.innerText = aiText;
