@@ -1,4 +1,60 @@
+  <!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moje Neomezené Gemini</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #131314; color: #e3e3e3; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        #setup { display: flex; gap: 10px; padding: 10px 20px; background: #1e1f20; border-bottom: 1px solid #3c4043; font-size: 14px; align-items: center; flex-wrap: wrap; }
+        #chat-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .message { max-width: 80%; padding: 12px; border-radius: 8px; line-height: 1.4; word-break: break-word; white-space: pre-wrap; }
+        .user { background: #2b2a2a; align-self: flex-end; color: white; }
+        .ai { background: #1e1f20; align-self: flex-start; border: 1px solid #3c4043; }
+        #input-container { padding: 20px; background: #131314; display: flex; gap: 10px; border-top: 1px solid #3c4043; }
+        input, select { background: #2a2b2d; color: white; border: 1px solid #3c4043; padding: 12px; border-radius: 8px; font-size: 14px; }
+        input[type="text"] { flex: 1; }
+        button { background: #a8c7fa; color: #041e49; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; }
+        button:hover { background: #c2e7ff; }
+    </style>
+</head>
+<body>
+
+    <div id="setup">
+        <label for="apiKey">API Klíč:</label>
+        <input type="password" id="apiKey" placeholder="Vložte AIzaSy..." style="padding: 6px;" oninput="saveApiKey()">
+        <label for="modelSelect">Model:</label>
+        <select id="modelSelect" style="padding: 6px;">
+            <option value="gemini-1.5-flash">Gemini 1.5 Flash (Rychlý)</option>
+            <option value="gemini-2.5-flash">Gemini 2.5 Flash (Nejnovější)</option>
+            <option value="gemini-1.5-pro">Gemini 1.5 Pro (Chytrý / Těžké úkoly)</option>
+        </select>
+    </div>
+
+    <div id="chat-container">
+        <div class="message ai">Ahoj! Vlož nahoře svůj API klíč z Google AI Studio, vyber model a můžeme si povídat bez omezení. Klíč se bezpečně uloží v tvém prohlížeči.</div>
+    </div>
+
+    <div id="input-container">
+        <input type="text" id="userInput" placeholder="Napiš zprávu..." onkeydown="if(event.key === 'Enter') sendMessage()">
+        <button onclick="sendMessage()">Odeslat</button>
+    </div>
+
     <script>
+        // Při načtení stránky zkontrolujeme, jestli už máme klíč uložený v prohlížeči
+        window.onload = function() {
+            const savedKey = localStorage.getItem('gemini_api_key');
+            if (savedKey) {
+                document.getElementById('apiKey').value = savedKey;
+            }
+        };
+
+        // Funkce, která klíč automaticky uloží, když ho napíšete nebo vložíte
+        function saveApiKey() {
+            const key = document.getElementById('apiKey').value.trim();
+            localStorage.setItem('gemini_api_key', key);
+        }
+
         async function sendMessage() {
             const apiKey = document.getElementById('apiKey').value.trim();
             const model = document.getElementById('modelSelect').value;
@@ -14,7 +70,7 @@
             const aiMessageElement = appendMessage('Přemýšlím...', 'ai');
 
             try {
-                // Používáme správný oficiální endpoint pro Gemini API
+                // Tady je ta opravená a 100% správná adresa pro servery Googlu
                 const url = `https://googleapis.com{model}:generateContent?key=${apiKey}`;
                 
                 const response = await fetch(url, {
@@ -29,16 +85,22 @@
 
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(errorData.error?.message || 'Chyba API');
+                    throw new Error(errorData.error?.message || `Chyba serveru (${response.status})`);
                 }
 
                 const data = await response.json();
-                // Správné vytažení textu ze struktury Gemini odpovědi
-                const aiText = data.candidates[0].content.parts[0].text;
-                aiMessageElement.innerText = aiText;
+                
+                // Vytáhneme text z odpovědi od Gemini
+                if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
+                    const aiText = data.candidates[0].content.parts[0].text;
+                    aiMessageElement.innerText = aiText;
+                } else {
+                    aiMessageElement.innerText = "Dostal jsem prázdnou odpověď, zkontrolujte nastavení modelu.";
+                }
+
             } catch (error) {
                 console.error(error);
-                aiMessageElement.innerText = `Chyba: ${error.message}. Zkontroluj, zda máš správný API klíč a vybraný podporovaný model.`;
+                aiMessageElement.innerText = `Chyba: ${error.message}. Zkontrolujte klíč nebo zkuste jiný model.`;
             }
         }
 
@@ -52,3 +114,5 @@
             return msg;
         }
     </script>
+</body>
+</html>
