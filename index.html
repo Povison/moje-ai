@@ -55,7 +55,6 @@
             localStorage.setItem('gemini_key_storage', key);
         }
 
-        // TATO FUNKCE SE TEĎ JMENUJE PŘESNĚ SENDMESSAGE JAKO VAŠE TLAČÍTKO
         async function sendMessage() {
             const apiKey = document.getElementById('apiKey').value.trim();
             const model = document.getElementById('modelSelect').value;
@@ -71,8 +70,8 @@
             const aiMessageElement = appendMessage('Přemýšlím...', 'ai');
 
             try {
-                // OPRAVENÁ ADRESA: Používá správný tvar bez chyb a bere jak AQ. tak starší klíče
-                const url = `https://googleapis.com{model}:generateContent?key=${apiKey}`;
+                // TADY JE OPRAVA: Adresa poskládaná naprosto bezpečně bez chybových uvozovek
+                const url = 'https://googleapis.com' + model + ':generateContent?key=' + apiKey;
                 
                 const response = await fetch(url, {
                     method: 'POST',
@@ -86,7 +85,7 @@
 
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(errorData.error?.message || `Chyba serveru (${response.status})`);
+                    throw new Error(errorData.error?.message || 'Chyba serveru (' + response.status + ')');
                 }
 
                 const data = await response.json();
@@ -95,12 +94,12 @@
                     const aiText = data.candidates[0].content.parts[0].text;
                     aiMessageElement.innerText = aiText;
                 } else {
-                    aiMessageElement.innerText = "Dostal jsem neočekávanou odpověď. Zkontrolujte API klíč.";
+                    aiMessageElement.innerText = "Dostal jsem odpověď v jiném formátu. Zkontrolujte API klíč.";
                 }
 
             } catch (error) {
                 console.error(error);
-                aiMessageElement.innerText = `Chyba: ${error.message}. Zkontrolujte klíč nebo zkuste jiný model.`;
+                aiMessageElement.innerText = 'Chyba: ' + error.message + '. Zkontrolujte klíč nebo zkuste jiný model.';
             }
         }
 
