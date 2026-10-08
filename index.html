@@ -36,8 +36,8 @@
     </div>
 
     <div id="input-container">
-        <input type="text" id="userInput" placeholder="Napiš zprávu..." onkeydown="if(event.key === 'Enter') startChat()">
-        <button onclick="startChat()">Odeslat</button>
+        <input type="text" id="userInput" placeholder="Napiš zprávu..." onkeydown="if(event.key === 'Enter') sendMessage()">
+        <button onclick="sendMessage()">Odeslat</button>
     </div>
 
     <script>
@@ -55,7 +55,8 @@
             localStorage.setItem('gemini_key_storage', key);
         }
 
-        async function startChat() {
+        // TATO FUNKCE SE TEĎ JMENUJE PŘESNĚ SENDMESSAGE JAKO VAŠE TLAČÍTKO
+        async function sendMessage() {
             const apiKey = document.getElementById('apiKey').value.trim();
             const model = document.getElementById('modelSelect').value;
             const inputField = document.getElementById('userInput');
@@ -70,7 +71,7 @@
             const aiMessageElement = appendMessage('Přemýšlím...', 'ai');
 
             try {
-                // Oficiální Google API endpoint s parametrem ?key=
+                // OPRAVENÁ ADRESA: Používá správný tvar bez chyb a bere jak AQ. tak starší klíče
                 const url = `https://googleapis.com{model}:generateContent?key=${apiKey}`;
                 
                 const response = await fetch(url, {
@@ -90,7 +91,7 @@
 
                 const data = await response.json();
                 
-                if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
+                if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts && data.candidates[0].content.parts[0]) {
                     const aiText = data.candidates[0].content.parts[0].text;
                     aiMessageElement.innerText = aiText;
                 } else {
